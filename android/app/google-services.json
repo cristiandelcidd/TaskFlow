@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "352611586936",
+    "project_id": "task-flow-8cbad",
+    "storage_bucket": "task-flow-8cbad.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:352611586936:android:f572ab26873bf3597fee8d",
+        "android_client_info": {
+          "package_name": "hn.edu.unah.task_flow"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCwfj17eXWIYCr6CGFgdW6g-TUAML3GvBE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
