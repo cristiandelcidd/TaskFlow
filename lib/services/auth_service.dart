@@ -11,7 +11,6 @@ class AuthService {
           email: email, password: password);
       return result.user;
     } catch (e) {
-      print("Error en inicio de sesión: $e");
       return null;
     }
   }
@@ -22,44 +21,32 @@ class AuthService {
           email: email, password: password);
       return result.user;
     } catch (e) {
-      print("Error en registro: $e");
       return null;
     }
   }
 
-  // Login con Google
-  Future<User?> signInWithGoogle() async {
-    try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser != null) {
-        final GoogleSignInAuthentication googleAuth =
-            await googleUser.authentication;
+  Future<UserCredential> signInWithGoogle() async {
+    final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
 
-        final credential = GoogleAuthProvider.credential(
-          accessToken: googleAuth.accessToken,
-          idToken: googleAuth.idToken,
-        );
+    final GoogleSignInAuthentication? googleAuth =
+        await googleUser?.authentication;
 
-        UserCredential userCredential =
-            await _auth.signInWithCredential(credential);
-        return userCredential.user;
-      }
-    } catch (e) {
-      print("Error en Google Sign-In: $e");
-    }
-    return null;
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth?.accessToken,
+      idToken: googleAuth?.idToken,
+    );
+
+    return await FirebaseAuth.instance.signInWithCredential(credential);
   }
 
-  // Recuperación de contraseña
   Future<void> resetPassword(String email) async {
     try {
       await _auth.sendPasswordResetEmail(email: email);
     } catch (e) {
-      print("Error en recuperación de contraseña: $e");
+      print(e);
     }
   }
 
-  // Logout
   Future<void> signOut() async {
     await _auth.signOut();
     await _googleSignIn.signOut();

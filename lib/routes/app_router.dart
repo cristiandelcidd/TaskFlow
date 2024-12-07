@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:task_flow/screens/overdue_tasks_screen.dart';
 
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
@@ -20,16 +21,16 @@ class AppRouter {
       GoRoute(
         path: '/',
         builder: (context, state) => const HomeScreen(),
-        // routes: [
-        //   GoRoute(
-        //     path: 'tasks',
-        //     builder: (context, state) => TaskListScreen(),
-        //   ),
-        //   GoRoute(
-        //     path: 'overdue',
-        //     builder: (context, state) => OverdueTasksScreen(),
-        //   ),
-        // ],
+        routes: [
+          //   GoRoute(
+          //     path: 'tasks',
+          //     builder: (context, state) => TaskListScreen(),
+          //   ),
+          GoRoute(
+            path: 'overdue',
+            builder: (context, state) => const OverdueTasksScreen(),
+          ),
+        ],
       ),
     ],
     errorBuilder: (context, state) => const Scaffold(

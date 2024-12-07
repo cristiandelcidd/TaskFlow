@@ -12,7 +12,20 @@
           "package_name": "hn.edu.unah.task_flow"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "352611586936-s44rdh4c44afic8rm0r4pndqsa4vkl3i.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "hn.edu.unah.task_flow",
+            "certificate_hash": "7592b45ddf4542658d073a7d61688611e4750e89"
+          }
+        },
+        {
+          "client_id": "352611586936-1q2rjep5i1jqk225btt4ove509eol2q2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCwfj17eXWIYCr6CGFgdW6g-TUAML3GvBE"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "352611586936-1q2rjep5i1jqk225btt4ove509eol2q2.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "352611586936-o4bka3bcpmmfb8t6c1tt36u88u82jki7.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.taskFlow"
+              }
+            }
+          ]
         }
       }
     }

@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../services/auth_service.dart';
@@ -11,133 +12,205 @@ class RegisterScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    TextEditingController emailController = TextEditingController();
-    TextEditingController passwordController = TextEditingController();
-
     return Scaffold(
-      appBar: AppBar(
-        title:
-            const Text("Crear Cuenta", style: TextStyle(color: Colors.white)),
-        centerTitle: true,
-        backgroundColor: Colors.indigo,
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              "¡Bienvenido!",
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Colors.indigo,
-              ),
-              textAlign: TextAlign.center,
+      body: RegisterBody(authService: _authService),
+    );
+  }
+}
+
+class RegisterBody extends StatefulWidget {
+  final AuthService authService;
+
+  const RegisterBody({required this.authService, super.key});
+
+  @override
+  _RegisterBodyState createState() => _RegisterBodyState();
+}
+
+class _RegisterBodyState extends State<RegisterBody> {
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
+
+  void _toggleLoading(bool value) {
+    setState(() {
+      _isLoading = value;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 48.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 48),
+          const Text(
+            "Crear Cuenta",
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
             ),
-            const SizedBox(height: 8),
-            const Text(
-              "Regístrate para comenzar a gestionar tus tareas.",
-              style: TextStyle(fontSize: 16, color: Colors.black54),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-            TextField(
-              controller: emailController,
-              decoration: InputDecoration(
-                labelText: "Correo electrónico",
-                prefixIcon: const Icon(Icons.email, color: Colors.indigo),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8.0),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            "Regístrate para comenzar tu experiencia",
+            style: TextStyle(fontSize: 16, color: Colors.grey),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 32),
+          Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                _buildTextField(
+                  controller: _emailController,
+                  label: "Correo Electrónico",
+                  icon: Icons.email,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return "Por favor, introduce tu correo";
+                    }
+                    if (!RegExp(
+                            r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
+                        .hasMatch(value)) {
+                      return "Introduce un correo válido";
+                    }
+                    return null;
+                  },
                 ),
-              ),
-              keyboardType: TextInputType.emailAddress,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: passwordController,
-              decoration: InputDecoration(
-                labelText: "Contraseña",
-                prefixIcon: const Icon(Icons.lock, color: Colors.indigo),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8.0),
+                const SizedBox(height: 16),
+                _buildTextField(
+                  controller: _passwordController,
+                  label: "Contraseña",
+                  icon: Icons.lock,
+                  obscureText: true,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return "Por favor, introduce tu contraseña";
+                    }
+                    if (value.length < 6) {
+                      return "La contraseña debe tener al menos 6 caracteres";
+                    }
+                    return null;
+                  },
                 ),
-              ),
-              obscureText: true,
+              ],
             ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () async {
-                User? user = await _authService.registerWithEmail(
-                    emailController.text, passwordController.text);
-                if (user != null) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content:
-                            Text("Cuenta creada. Por favor, inicia sesión")));
-                    context.pop();
-                  }
-                } else {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Error al registrarse")));
-                  }
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.indigo,
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.0),
+          ),
+          const SizedBox(height: 24),
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : ElevatedButton(
+                  onPressed: _register,
+                  style: _buttonStyle(),
+                  child: const Text("Registrarse",
+                      style: TextStyle(fontSize: 15, color: Colors.white)),
                 ),
-              ),
-              child: const Text(
-                "Registrarse",
-                style: TextStyle(fontSize: 16, color: Colors.white),
-              ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: _isLoading ? null : _registerWithGoogle,
+            icon: const Icon(FontAwesomeIcons.google, color: Colors.white),
+            label: const Text("Registrarse con Google",
+                style: TextStyle(fontSize: 15, color: Colors.white)),
+            style: _buttonStyle(color: Colors.blueAccent),
+          ),
+          const SizedBox(height: 24),
+          TextButton(
+            onPressed: () => context.pop(),
+            child: const Text(
+              "¿Ya tienes una cuenta? Inicia sesión",
+              style: TextStyle(color: Colors.indigo, fontSize: 14),
             ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: () async {
-                User? user = await _authService.signInWithGoogle();
-                if (user != null) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text("Registro exitoso con Google.")));
-                    context.go('/');
-                  }
-                } else {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text("Error al registrarse con Google")));
-                  }
-                }
-              },
-              icon: const Icon(Icons.g_mobiledata, color: Colors.white),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueAccent,
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
-              ),
-              label: const Text(
-                "Registrarse con Google",
-                style: TextStyle(fontSize: 16, color: Colors.white),
-              ),
-            ),
-            const SizedBox(height: 24),
-            TextButton(
-              onPressed: () => context.pop(),
-              child: const Text(
-                "¿Ya tienes una cuenta? Inicia sesión",
-                style: TextStyle(color: Colors.indigo, fontSize: 14),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    bool obscureText = false,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      obscureText: obscureText,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+      validator: validator,
+    );
+  }
+
+  ButtonStyle _buttonStyle({Color color = Colors.indigo}) {
+    return ElevatedButton.styleFrom(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      backgroundColor: color,
+    );
+  }
+
+  Future<void> _register() async {
+    if (_formKey.currentState!.validate()) {
+      _toggleLoading(true);
+      try {
+        User? user = await widget.authService.registerWithEmail(
+          _emailController.text,
+          _passwordController.text,
+        );
+        if (user != null) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text("Cuenta creada. Por favor, inicia sesión"),
+            ));
+            context.pop();
+          }
+        } else {
+          _showError("Error al registrarse");
+        }
+      } catch (e) {
+        _showError("Error: ${e.toString()}");
+      } finally {
+        _toggleLoading(false);
+      }
+    }
+  }
+
+  Future<void> _registerWithGoogle() async {
+    _toggleLoading(true);
+    try {
+      UserCredential? userCredential =
+          await widget.authService.signInWithGoogle();
+      if (userCredential.user != null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text("Registro exitoso con Google."),
+          ));
+          context.go('/');
+        }
+      } else {
+        _showError("Error al registrarse con Google");
+      }
+    } catch (e) {
+      _showError("Error: ${e.toString()}");
+    } finally {
+      _toggleLoading(false);
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 }

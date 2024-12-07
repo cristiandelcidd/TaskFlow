@@ -63,6 +63,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '352611586936',
     projectId: 'task-flow-8cbad',
     storageBucket: 'task-flow-8cbad.firebasestorage.app',
+    iosClientId: '352611586936-o4bka3bcpmmfb8t6c1tt36u88u82jki7.apps.googleusercontent.com',
     iosBundleId: 'com.example.taskFlow',
   );
+
 }
