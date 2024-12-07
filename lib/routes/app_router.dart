@@ -20,7 +20,7 @@ class AppRouter {
       ),
       GoRoute(
         path: '/',
-        builder: (context, state) => const HomeScreen(),
+        builder: (context, state) => HomeScreen(),
         routes: [
           //   GoRoute(
           //     path: 'tasks',
