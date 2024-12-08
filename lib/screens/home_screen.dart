@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
 import 'package:task_flow/screens/overdue_tasks_screen.dart';
 import 'package:task_flow/screens/task_list_screen.dart';
 import 'package:task_flow/services/auth_service.dart';
@@ -28,11 +29,8 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.more_vert),
             onSelected: (value) {
               switch (value) {
-                case 'profile':
-                  context.go('/profile');
-                  break;
-                case 'settings':
-                  context.go('/settings');
+                case 'list':
+                  context.go('/lists');
                   break;
                 case 'logout':
                   _showMyDialog();
@@ -42,12 +40,8 @@ class _HomeScreenState extends State<HomeScreen> {
             itemBuilder: (BuildContext context) {
               return [
                 const PopupMenuItem(
-                  value: 'profile',
-                  child: Text('Perfil'),
-                ),
-                const PopupMenuItem(
-                  value: 'settings',
-                  child: Text('Configuraciones'),
+                  value: 'list',
+                  child: Text('Listas'),
                 ),
                 const PopupMenuItem(
                   value: 'logout',
