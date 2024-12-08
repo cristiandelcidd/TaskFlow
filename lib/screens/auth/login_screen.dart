@@ -24,7 +24,7 @@ class LoginBody extends StatefulWidget {
   const LoginBody({required this.authService, super.key});
 
   @override
-  _LoginBodyState createState() => _LoginBodyState();
+  State<LoginBody> createState() => _LoginBodyState();
 }
 
 class _LoginBodyState extends State<LoginBody> {

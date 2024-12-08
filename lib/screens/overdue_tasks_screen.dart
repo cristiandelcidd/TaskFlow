@@ -22,9 +22,8 @@ class OverdueTasksScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Tareas Vencidas")),
-      body: StreamBuilder<List<TaskModel>>(
+    return Center(
+      child: StreamBuilder<List<TaskModel>>(
         stream: _fetchOverdueTasks(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {

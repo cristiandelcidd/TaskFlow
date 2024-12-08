@@ -24,7 +24,7 @@ class RegisterBody extends StatefulWidget {
   const RegisterBody({required this.authService, super.key});
 
   @override
-  _RegisterBodyState createState() => _RegisterBodyState();
+  State<RegisterBody> createState() => _RegisterBodyState();
 }
 
 class _RegisterBodyState extends State<RegisterBody> {
