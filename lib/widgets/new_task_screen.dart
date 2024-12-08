@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
-class NuevaTareaScreen extends StatefulWidget {
+class NewTaskScreen extends StatefulWidget {
+  const NewTaskScreen({super.key});
+
   @override
-  _NuevaTareaScreenState createState() => _NuevaTareaScreenState();
+  State<NewTaskScreen> createState() => _NewTaskScreenState();
 }
 
-class _NuevaTareaScreenState extends State<NuevaTareaScreen> {
+class _NewTaskScreenState extends State<NewTaskScreen> {
   final _formKey = GlobalKey<FormState>();
   final _controladorTarea = TextEditingController();
 
@@ -28,7 +30,7 @@ class _NuevaTareaScreenState extends State<NuevaTareaScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Nueva Tarea'),
+        title: const Text('Nueva Tarea'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -38,7 +40,7 @@ class _NuevaTareaScreenState extends State<NuevaTareaScreen> {
             children: [
               TextFormField(
                 controller: _controladorTarea,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Nombre de la tarea',
                   border: OutlineInputBorder(),
                 ),
@@ -49,10 +51,10 @@ class _NuevaTareaScreenState extends State<NuevaTareaScreen> {
                   return null;
                 },
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _guardarTarea,
-                child: Text('Guardar'),
+                child: const Text('Guardar'),
               ),
             ],
           ),

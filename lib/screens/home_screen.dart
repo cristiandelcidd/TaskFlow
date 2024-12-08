@@ -1,25 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:task_flow/screens/overdue_tasks_screen.dart';
+import 'package:task_flow/screens/task_list_screen.dart';
+import 'package:task_flow/services/auth_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
 
-  // Lista de rutas para cada botón del BottomNavigationBar
-  final List<String> _routes = ['/home', '/tasks', '/overdue'];
+  var auth = AuthService();
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-    context.go(_routes[index]);
-  }
+  final pageViewController = PageController();
 
   @override
   Widget build(BuildContext context) {
@@ -27,27 +24,60 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text("Gestor de Tareas"),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              context.go('/login');
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              switch (value) {
+                case 'profile':
+                  context.go('/profile');
+                  break;
+                case 'settings':
+                  context.go('/settings');
+                  break;
+                case 'logout':
+                  _showMyDialog();
+                  break;
+              }
+            },
+            itemBuilder: (BuildContext context) {
+              return [
+                const PopupMenuItem(
+                  value: 'profile',
+                  child: Text('Perfil'),
+                ),
+                const PopupMenuItem(
+                  value: 'settings',
+                  child: Text('Configuraciones'),
+                ),
+                const PopupMenuItem(
+                  value: 'logout',
+                  child: Text('Cerrar sesión'),
+                ),
+              ];
             },
           ),
         ],
       ),
-      body: Center(
-        child: _selectedIndex == 0
-            ? const Text("Pantalla de Inicio")
-            : _selectedIndex == 1
-                ? const Text("Tareas Pendientes")
-                : const Text("Tareas Vencidas"),
+      body: PageView(
+        controller: pageViewController,
+        onPageChanged: (page) {
+          setState(() {
+            _selectedIndex = page;
+          });
+        },
+        children: const [
+          TaskListScreen(),
+          OverdueTasksScreen(),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          context.go('/new-task');
+        },
+        child: const Icon(Icons.add),
       ),
       bottomNavigationBar: BottomNavigationBar(
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Inicio',
-          ),
           BottomNavigationBarItem(
             icon: Icon(Icons.task_alt),
             label: 'Pendientes',
@@ -58,8 +88,47 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
         currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
+        onTap: (index) {
+          setState(() {
+            _selectedIndex = index;
+            pageViewController.jumpToPage(index);
+          });
+        },
       ),
+    );
+  }
+
+  Future<void> _showMyDialog() async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Cerrar sesión'),
+          content: const SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text('¿Estás seguro de que deseas cerrar sesión?'),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Aceptar'),
+              onPressed: () {
+                auth.signOut();
+                context.go('/login');
+              },
+            ),
+            TextButton(
+              child: const Text('Cancelar'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 }
