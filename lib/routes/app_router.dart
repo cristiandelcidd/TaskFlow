@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:task_flow/screens/overdue_tasks_screen.dart';
+import 'package:task_flow/screens/task_list_screen.dart';
 
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
@@ -22,10 +23,10 @@ class AppRouter {
         path: '/',
         builder: (context, state) => const HomeScreen(),
         routes: [
-          //   GoRoute(
-          //     path: 'tasks',
-          //     builder: (context, state) => TaskListScreen(),
-          //   ),
+             GoRoute(
+               path: 'tasks',
+               builder: (context, state) =>  TaskListScreen(),
+             ),
           GoRoute(
             path: 'overdue',
             builder: (context, state) => const OverdueTasksScreen(),
@@ -37,6 +38,7 @@ class AppRouter {
       body: Center(
         child: Text('Página no encontrada'),
       ),
+      //floatingActionButton: FloatingActionButton(onPressed: context.go('/login')),
     ),
   );
 }
