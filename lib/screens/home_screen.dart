@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:task_flow/screens/overdue_tasks_screen.dart';
 import 'package:task_flow/screens/task_list_screen.dart';
 import 'package:task_flow/services/auth_service.dart';
+import 'package:task_flow/services/list_service.dart';
+import 'package:task_flow/services/task_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -59,16 +61,22 @@ class _HomeScreenState extends State<HomeScreen> {
             _selectedIndex = page;
           });
         },
-        children: const [
-          TaskListScreen(),
-          OverdueTasksScreen(),
+        children: [
+          TaskListScreen(
+            taskService: TaskService(),
+            listService: ListService(),
+          ),
+          OverdueTasksScreen(
+            taskService: TaskService(),
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           context.go('/new-task');
         },
-        child: const Icon(Icons.add),
+        backgroundColor: Colors.green,
+        child: const Icon(Icons.add, color: Colors.white),
       ),
       bottomNavigationBar: BottomNavigationBar(
         items: const [

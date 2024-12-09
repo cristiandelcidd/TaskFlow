@@ -1,48 +1,31 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:task_flow/services/task_service.dart';
 
 import '../models/task_model.dart';
 import '../widgets/task_card.dart';
 
 class OverdueTasksScreen extends StatelessWidget {
-  const OverdueTasksScreen({super.key});
+  final TaskService taskService;
 
-  Stream<List<TaskModel>> _fetchOverdueTasks() {
-    final now = DateTime.now();
-
-    return FirebaseFirestore.instance
-        .collection('tasks')
-        .where('dueDate', isLessThan: now)
-        .where('isCompleted', isEqualTo: false)
-        .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) {
-              return TaskModel.fromMap(doc.data(), doc.id);
-            }).toList());
-  }
+  const OverdueTasksScreen({super.key, required this.taskService});
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: StreamBuilder<List<TaskModel>>(
-        stream: _fetchOverdueTasks(),
+        stream: taskService.getOverdueTasks(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (snapshot.hasError) {
-            return Center(
-              child: Text("Error al cargar tareas: ${snapshot.error}"),
-            );
-          }
-
-          final overdueTasks = snapshot.data ?? [];
-
-          if (overdueTasks.isEmpty) {
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return const Center(
-              child: Text("No hay tareas vencidas"),
+              child: Text("No hay tareas vencidas."),
             );
           }
+
+          final overdueTasks = snapshot.data!;
 
           return ListView.builder(
             itemCount: overdueTasks.length,
