@@ -5,7 +5,6 @@ class OverdueTasksScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Aquí se mostrarán las tareas vencidas
     return Scaffold(
       appBar: AppBar(title: const Text('Tareas Vencidas')),
       body: const Center(

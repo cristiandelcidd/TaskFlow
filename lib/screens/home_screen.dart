@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
 import 'package:task_flow/screens/overdue_tasks_screen.dart';
 import 'package:task_flow/screens/task_list_screen.dart';
 import 'package:task_flow/services/auth_service.dart';
+import 'package:task_flow/services/list_service.dart';
+import 'package:task_flow/services/task_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -28,11 +31,8 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.more_vert),
             onSelected: (value) {
               switch (value) {
-                case 'profile':
-                  context.go('/profile');
-                  break;
-                case 'settings':
-                  context.go('/settings');
+                case 'list':
+                  context.go('/lists');
                   break;
                 case 'logout':
                   _showMyDialog();
@@ -42,12 +42,8 @@ class _HomeScreenState extends State<HomeScreen> {
             itemBuilder: (BuildContext context) {
               return [
                 const PopupMenuItem(
-                  value: 'profile',
-                  child: Text('Perfil'),
-                ),
-                const PopupMenuItem(
-                  value: 'settings',
-                  child: Text('Configuraciones'),
+                  value: 'list',
+                  child: Text('Listas'),
                 ),
                 const PopupMenuItem(
                   value: 'logout',
@@ -65,16 +61,22 @@ class _HomeScreenState extends State<HomeScreen> {
             _selectedIndex = page;
           });
         },
-        children: const [
-          TaskListScreen(),
-          OverdueTasksScreen(),
+        children: [
+          TaskListScreen(
+            taskService: TaskService(),
+            listService: ListService(),
+          ),
+          OverdueTasksScreen(
+            taskService: TaskService(),
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           context.go('/new-task');
         },
-        child: const Icon(Icons.add),
+        backgroundColor: Colors.green,
+        child: const Icon(Icons.add, color: Colors.white),
       ),
       bottomNavigationBar: BottomNavigationBar(
         items: const [
