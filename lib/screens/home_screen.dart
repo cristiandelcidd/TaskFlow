@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:task_flow/screens/completed_tasks_screen.dart';
 
 import 'package:task_flow/screens/overdue_tasks_screen.dart';
 import 'package:task_flow/screens/task_list_screen.dart';
@@ -69,6 +70,9 @@ class _HomeScreenState extends State<HomeScreen> {
           OverdueTasksScreen(
             taskService: TaskService(),
           ),
+          CompletedTasksScreen(
+            taskService: TaskService(),
+          )
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -87,6 +91,10 @@ class _HomeScreenState extends State<HomeScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.warning),
             label: 'Vencidas',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.check),
+            label: 'Completadas',
           ),
         ],
         currentIndex: _selectedIndex,

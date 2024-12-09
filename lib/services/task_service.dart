@@ -1,71 +1,77 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
 import 'package:task_flow/models/task_model.dart';
 import 'package:task_flow/services/auth_service.dart';
 
 class TaskService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  User user = AuthService().getCurrentUser();
-
+  final User user = AuthService().getCurrentUser();
   static const collection = 'tasks';
 
-  Stream<List<TaskModel>> getTasksByList(String? listId) {
-    if (listId != null) {
-      return _firestore
-          .collection(collection)
-          .where('listId', isEqualTo: listId)
-          .where('createdBy', isEqualTo: user.uid)
-          .snapshots()
-          .map((snapshot) {
-        return snapshot.docs.map((doc) {
-          return TaskModel(
-            id: doc.id,
-            title: doc.data()['title'],
-            description: doc.data()['description'],
-            dueDate: (doc.data()['dueDate'] as Timestamp).toDate(),
-            isCompleted: doc.data()['isCompleted'],
-            collaborators: List<String>.from(doc.data()['collaborators'] ?? []),
-            listId: doc.data()['listId'],
-          );
-        }).toList();
-      });
-    } else {
-      return _firestore
-          .collection(collection)
-          .where('createdBy', isEqualTo: user.uid)
-          .snapshots()
-          .map((snapshot) {
-        return snapshot.docs.map((doc) {
-          return TaskModel(
-            id: doc.id,
-            title: doc.data()['title'],
-            description: doc.data()['description'],
-            dueDate: (doc.data()['dueDate'] as Timestamp).toDate(),
-            isCompleted: doc.data()['isCompleted'],
-            collaborators: List<String>.from(doc.data()['collaborators'] ?? []),
-            listId: doc.data()['listId'],
-          );
-        }).toList();
-      });
+  Stream<List<TaskModel>> _getTasks({
+    String? listId,
+    bool? isCompleted,
+    DateTime? dueDate,
+  }) {
+    var query = _firestore
+        .collection(collection)
+        .where('createdBy', isEqualTo: user.uid);
+
+    if (listId != null) query = query.where('listId', isEqualTo: listId);
+
+    if (isCompleted != null) {
+      query = query.where('isCompleted', isEqualTo: isCompleted);
     }
+
+    if (dueDate != null) {
+      query = query.where('dueDate', isLessThan: Timestamp.fromDate(dueDate));
+    }
+
+    return query.snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        return TaskModel(
+          id: doc.id,
+          title: data['title'],
+          description: data['description'],
+          dueDate: (data['dueDate'] as Timestamp).toDate(),
+          isCompleted: data['isCompleted'],
+          collaborators: List<String>.from(data['collaborators']),
+          listId: data['listId'],
+        );
+      }).toList();
+    });
   }
 
+  Stream<List<TaskModel>> getTasksByList(String? listId) =>
+      _getTasks(listId: listId);
+
+  Stream<List<TaskModel>> getPendingTasksByList(String? listId) =>
+      _getTasks(listId: listId, isCompleted: false);
+
+  Stream<List<TaskModel>> getCompletedTasks() => _getTasks(isCompleted: true);
+
+  Stream<List<TaskModel>> getOverdueTasks() => _getTasks(
+        isCompleted: false,
+        dueDate: DateTime.now(),
+      );
+
   Future<List<TaskModel>> getTasksByListOnce() async {
-    final snapshot = await _firestore
+    var snapshot = (await _firestore
         .collection(collection)
         .where('createdBy', isEqualTo: user.uid)
-        .get();
+        .get());
 
     return snapshot.docs.map((doc) {
+      final data = doc.data();
       return TaskModel(
         id: doc.id,
-        title: doc.data()['title'],
-        description: doc.data()['description'],
-        dueDate: (doc.data()['dueDate'] as Timestamp).toDate(),
-        isCompleted: doc.data()['isCompleted'],
-        collaborators: List<String>.from(doc.data()['collaborators'] ?? []),
-        listId: doc.data()['listId'],
+        title: data['title'],
+        description: data['description'],
+        dueDate: (data['dueDate'] as Timestamp).toDate(),
+        isCompleted: data['isCompleted'],
+        collaborators: List<String>.from(data['collaborators']),
+        listId: data['listId'],
       );
     }).toList();
   }
@@ -79,7 +85,7 @@ class TaskService {
       'listId': listId,
       'collaborators': task.collaborators,
       'createdAt': FieldValue.serverTimestamp(),
-      'createdBy': task.createdBy,
+      'createdBy': user.uid,
     });
   }
 
@@ -98,43 +104,15 @@ class TaskService {
   }
 
   Future<void> addCollaborator(String taskId, String collaboratorEmail) async {
-    final taskRef = _firestore.collection(collection).doc(taskId);
-
-    await taskRef.update({
+    await _firestore.collection(collection).doc(taskId).update({
       'collaborators': FieldValue.arrayUnion([collaboratorEmail]),
     });
   }
 
   Future<void> removeCollaborator(
       String taskId, String collaboratorEmail) async {
-    final taskRef = _firestore.collection(collection).doc(taskId);
-
-    await taskRef.update({
+    await _firestore.collection(collection).doc(taskId).update({
       'collaborators': FieldValue.arrayRemove([collaboratorEmail]),
-    });
-  }
-
-  Stream<List<TaskModel>> getOverdueTasks() {
-    final now = DateTime.now();
-
-    return _firestore
-        .collection(collection)
-        .where('dueDate', isLessThan: Timestamp.fromDate(now))
-        .where('isCompleted', isEqualTo: false)
-        .where('createdBy', isEqualTo: user.uid)
-        .snapshots()
-        .map((snapshot) {
-      return snapshot.docs.map((doc) {
-        return TaskModel(
-          id: doc.id,
-          title: doc.data()['title'],
-          description: doc.data()['description'],
-          dueDate: (doc.data()['dueDate'] as Timestamp).toDate(),
-          isCompleted: doc.data()['isCompleted'],
-          collaborators: List<String>.from(doc.data()['collaborators'] ?? []),
-          listId: doc.data()['listId'],
-        );
-      }).toList();
     });
   }
 }

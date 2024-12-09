@@ -43,8 +43,6 @@ class ListsScreen extends StatelessWidget {
 
             final lists = snapshot.data!;
 
-            print('Lists: $lists');
-
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -66,7 +64,22 @@ class ListsScreen extends StatelessWidget {
                           } else if (direction == DismissDirection.endToStart) {
                             final confirmed = await _confirmDelete(context);
                             if (confirmed) {
-                              await listService.deleteList(list.id);
+                              var result =
+                                  await listService.deleteList(list.id);
+
+                              if (result && context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                        "La lista está asociada a una o más tareas."),
+                                    backgroundColor: Colors.red,
+                                    behavior: SnackBarBehavior.floating,
+                                    duration: Duration(seconds: 2),
+                                  ),
+                                );
+
+                                return false;
+                              }
                             }
                             return confirmed;
                           }
@@ -195,6 +208,7 @@ class ListsScreen extends StatelessWidget {
               onPressed: () async {
                 await listService.updateList(
                     listId, editController.text, user.uid, user.email!);
+
                 if (context.mounted) {
                   Navigator.pop(context);
                 }
