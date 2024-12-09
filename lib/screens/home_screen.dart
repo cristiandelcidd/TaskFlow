@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:task_flow/screens/overdue_tasks_screen.dart';
+import 'package:task_flow/screens/select_task_screen.dart';
 import 'package:task_flow/screens/task_list_screen.dart';
 import 'package:task_flow/services/auth_service.dart';
 import 'package:task_flow/services/list_service.dart';
@@ -37,6 +37,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 case 'logout':
                   _showMyDialog();
                   break;
+                case 'Editar':
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SelectTaskScreen(
+                        taskService: TaskService(),
+                        listService: ListService(),
+                      ),
+                    ),
+                  );
+
+                  break;
               }
             },
             itemBuilder: (BuildContext context) {
@@ -48,6 +60,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 const PopupMenuItem(
                   value: 'logout',
                   child: Text('Cerrar sesión'),
+                ),
+                const PopupMenuItem(
+                  value: 'Editar',
+                  child: Text('Editar'),
                 ),
               ];
             },
