@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
-import 'package:task_flow/screens/completed_tasks_screen.dart';
 
+import 'package:task_flow/screens/completed_tasks_screen.dart';
 import 'package:task_flow/screens/overdue_tasks_screen.dart';
 import 'package:task_flow/screens/task_list_screen.dart';
 import 'package:task_flow/services/auth_service.dart';
@@ -40,18 +41,28 @@ class _HomeScreenState extends State<HomeScreen> {
                   break;
               }
             },
-            itemBuilder: (BuildContext context) {
-              return [
-                const PopupMenuItem(
-                  value: 'list',
-                  child: Text('Listas'),
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'list',
+                child: Row(
+                  children: [
+                    FaIcon(FontAwesomeIcons.list, size: 16),
+                    SizedBox(width: 8),
+                    Text('Listas'),
+                  ],
                 ),
-                const PopupMenuItem(
-                  value: 'logout',
-                  child: Text('Cerrar sesión'),
+              ),
+              const PopupMenuItem(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    FaIcon(FontAwesomeIcons.rightFromBracket, size: 16),
+                    SizedBox(width: 8),
+                    Text('Cerrar sesión'),
+                  ],
                 ),
-              ];
-            },
+              ),
+            ],
           ),
         ],
       ),
@@ -125,9 +136,12 @@ class _HomeScreenState extends State<HomeScreen> {
           actions: <Widget>[
             TextButton(
               child: const Text('Aceptar'),
-              onPressed: () {
-                auth.signOut();
-                context.go('/login');
+              onPressed: () async {
+                await auth.signOut();
+
+                if (context.mounted) {
+                  context.go('/login');
+                }
               },
             ),
             TextButton(

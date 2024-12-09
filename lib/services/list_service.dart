@@ -1,9 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:task_flow/models/task_list_model.dart';
+import 'package:task_flow/services/auth_service.dart';
 
 class ListService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final User user = AuthService().getCurrentUser();
 
   static const collection = "taskLists";
 

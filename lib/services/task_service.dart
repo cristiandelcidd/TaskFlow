@@ -11,24 +11,37 @@ class TaskService {
   Stream<List<TaskModel>> _getTasks({
     String? listId,
     bool? isCompleted,
+    DateTime? startDueDate,
+    DateTime? endDueDate,
     DateTime? dueDate,
+    String? title,
   }) {
     var query = _firestore
         .collection(collection)
-        .where('createdBy', isEqualTo: user.uid);
+        .where('collaborators', arrayContainsAny: [user.email]);
 
-    if (listId != null) query = query.where('listId', isEqualTo: listId);
+    if (listId != null) {
+      query = query.where('listId', isEqualTo: listId);
+    }
 
     if (isCompleted != null) {
       query = query.where('isCompleted', isEqualTo: isCompleted);
     }
 
+    if (startDueDate != null && endDueDate != null) {
+      query = query
+          .where('dueDate',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(startDueDate))
+          .where('dueDate',
+              isLessThanOrEqualTo: Timestamp.fromDate(endDueDate));
+    }
+
     if (dueDate != null) {
-      query = query.where('dueDate', isLessThan: Timestamp.fromDate(dueDate));
+      query = query.where('dueDate', isEqualTo: Timestamp.fromDate(dueDate));
     }
 
     return query.snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) {
+      final tasks = snapshot.docs.map((doc) {
         final data = doc.data();
         return TaskModel(
           id: doc.id,
@@ -40,11 +53,21 @@ class TaskService {
           listId: data['listId'],
         );
       }).toList();
+
+      if (title != null && title.isNotEmpty) {
+        return tasks.where((task) {
+          return task.title.toLowerCase().contains(title.toLowerCase());
+        }).toList();
+      }
+
+      return tasks;
     });
   }
 
   Stream<List<TaskModel>> getTasksByList(String? listId) =>
       _getTasks(listId: listId);
+
+  Stream<List<TaskModel>> getPendingTasks() => _getTasks(isCompleted: false);
 
   Stream<List<TaskModel>> getPendingTasksByList(String? listId) =>
       _getTasks(listId: listId, isCompleted: false);
@@ -56,10 +79,19 @@ class TaskService {
         dueDate: DateTime.now(),
       );
 
+  Stream<List<TaskModel>> getFilteredTasks(String? listId, String? title,
+          DateTime? startDueDate, DateTime? endDueDate) =>
+      _getTasks(
+        listId: listId,
+        isCompleted: false,
+        startDueDate: startDueDate,
+        endDueDate: endDueDate,
+      );
+
   Future<List<TaskModel>> getTasksByListOnce() async {
     var snapshot = (await _firestore
         .collection(collection)
-        .where('createdBy', isEqualTo: user.uid)
+        .where('collaborators', arrayContains: user.email)
         .get());
 
     return snapshot.docs.map((doc) {
@@ -83,7 +115,7 @@ class TaskService {
       'dueDate': task.dueDate,
       'isCompleted': false,
       'listId': listId,
-      'collaborators': task.collaborators,
+      'collaborators': [...task.collaborators, user.email],
       'createdAt': FieldValue.serverTimestamp(),
       'createdBy': user.uid,
     });
@@ -95,7 +127,7 @@ class TaskService {
       'description': updatedTask.description,
       'dueDate': updatedTask.dueDate,
       'isCompleted': updatedTask.isCompleted,
-      'collaborators': updatedTask.collaborators,
+      'collaborators': [...updatedTask.collaborators, user.email],
     });
   }
 
@@ -113,6 +145,37 @@ class TaskService {
       String taskId, String collaboratorEmail) async {
     await _firestore.collection(collection).doc(taskId).update({
       'collaborators': FieldValue.arrayRemove([collaboratorEmail]),
+    });
+  }
+
+  Future<TaskModel> getTaskById(String taskId) async {
+    var snapshot = await _firestore.collection(collection).doc(taskId).get();
+    final data = snapshot.data();
+
+    if (data == null) {
+      throw Exception('Task not found');
+    }
+
+    return TaskModel(
+      id: snapshot.id,
+      title: data['title'],
+      description: data['description'],
+      dueDate: (data['dueDate'] as Timestamp).toDate(),
+      isCompleted: data['isCompleted'],
+      collaborators: List<String>.from(data['collaborators']),
+      listId: data['listId'],
+    );
+  }
+
+  Future<void> markTaskAsCompleted(String taskId) async {
+    await _firestore.collection(collection).doc(taskId).update({
+      'isCompleted': true,
+    });
+  }
+
+  Future<void> markTaskAsPending(String taskId) async {
+    await _firestore.collection(collection).doc(taskId).update({
+      'isCompleted': false,
     });
   }
 }

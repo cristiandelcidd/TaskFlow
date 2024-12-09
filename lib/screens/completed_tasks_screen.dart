@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:task_flow/models/task_model.dart';
 import 'package:task_flow/services/task_service.dart';
@@ -32,6 +33,10 @@ class _CompletedTasksScreenState extends State<CompletedTasksScreen> {
         const SnackBar(content: Text('Tarea eliminada')),
       );
     }
+  }
+
+  void _viewTask(String taskId) {
+    context.go('/edit-task/$taskId', extra: {'isEditing': false});
   }
 
   @override
@@ -106,9 +111,22 @@ class _CompletedTasksScreenState extends State<CompletedTasksScreen> {
                                 onSelected: (value) {
                                   if (value == 'eliminar') {
                                     _deleteTask(task.id!);
+                                  } else if (value == 'editar') {
+                                    _viewTask(task.id!);
+                                  } else if (value == 'marcar-como-pendiente') {
+                                    widget.taskService
+                                        .markTaskAsPending(task.id as String);
                                   }
                                 },
                                 itemBuilder: (context) => [
+                                  const PopupMenuItem(
+                                    value: 'editar',
+                                    child: Text('Editar'),
+                                  ),
+                                  const PopupMenuItem(
+                                    value: 'marcar-como-pendiente',
+                                    child: Text('Marcar como Pendiente'),
+                                  ),
                                   const PopupMenuItem(
                                     value: 'eliminar',
                                     child: Text('Eliminar'),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:task_flow/screens/create_list_screen.dart';
+import 'package:task_flow/screens/edit_task_screen.dart';
 import 'package:task_flow/screens/lists_screen.dart';
 import 'package:task_flow/screens/new_task_screen.dart';
 import 'package:task_flow/services/auth_service.dart';
@@ -45,7 +46,23 @@ class AppRouter {
                 path: 'create-list',
                 builder: (context, state) => CreateListScreen(
                       listService: ListService(),
-                    ))
+                    )),
+            GoRoute(
+                path: 'edit-task/:taskId',
+                builder: (context, state) => EditTaskScreen(
+                      listService: ListService(),
+                      taskService: TaskService(),
+                      authService: AuthService(),
+                      isViewing: false,
+                    )),
+            GoRoute(
+                path: 'view-task/:taskId',
+                builder: (context, state) => EditTaskScreen(
+                      listService: ListService(),
+                      taskService: TaskService(),
+                      authService: AuthService(),
+                      isViewing: true,
+                    )),
           ]),
     ],
     errorBuilder: (context, state) => const Scaffold(

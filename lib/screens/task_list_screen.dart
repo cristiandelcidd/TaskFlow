@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import 'package:task_flow/models/task_model.dart';
 import 'package:task_flow/models/task_list_model.dart';
@@ -21,6 +24,9 @@ class TaskListScreen extends StatefulWidget {
 
 class _TaskListScreenState extends State<TaskListScreen> {
   String? _selectedListId;
+  String? _searchTitle;
+  DateTime? _startDate;
+  DateTime? _endDate;
   late Stream<List<TaskModel>> _tasksStream;
   List<TaskListModel> _lists = [];
   bool _isLoadingLists = true;
@@ -30,7 +36,8 @@ class _TaskListScreenState extends State<TaskListScreen> {
   void initState() {
     super.initState();
     _loadLists();
-    _tasksStream = const Stream.empty();
+    _selectedListId = null;
+    _tasksStream = widget.taskService.getPendingTasks();
   }
 
   Future<void> _loadLists() async {
@@ -52,41 +59,35 @@ class _TaskListScreenState extends State<TaskListScreen> {
     }
   }
 
-  void _updateTaskStream(String? listId) {
+  void _updateTaskStream() {
     setState(() {
       _isLoadingTasks = true;
     });
-    if (listId != null) {
-      setState(() {
-        _tasksStream = widget.taskService.getPendingTasksByList(listId);
-        _isLoadingTasks = false;
-      });
-    } else {
-      setState(() {
-        _tasksStream = const Stream.empty();
-        _isLoadingTasks = false;
-      });
-    }
+
+    setState(() {
+      _tasksStream = widget.taskService.getFilteredTasks(
+          _selectedListId, _searchTitle, _startDate, _endDate);
+
+      _isLoadingTasks = false;
+    });
   }
 
-  void _completeTask(TaskModel task) async {
-    task.isCompleted = true;
-    await widget.taskService.updateTask(task.id!, task);
+  void _selectDateRange() async {
+    final pickedRange = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+      initialDateRange: _startDate != null && _endDate != null
+          ? DateTimeRange(start: _startDate!, end: _endDate!)
+          : null,
+    );
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tarea marcada como completada')),
-      );
-    }
-  }
-
-  void _deleteTask(String taskId) async {
-    await widget.taskService.deleteTask(taskId);
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tarea eliminada')),
-      );
+    if (pickedRange != null) {
+      setState(() {
+        _startDate = pickedRange.start;
+        _endDate = pickedRange.end;
+        _updateTaskStream();
+      });
     }
   }
 
@@ -98,6 +99,20 @@ class _TaskListScreenState extends State<TaskListScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.all(8.0),
+              child: TextFormField(
+                decoration: const InputDecoration(
+                  labelText: "Buscar por título",
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.search),
+                ),
+                onChanged: (value) {
+                  _searchTitle = value;
+                  _updateTaskStream();
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
               child: _isLoadingLists
                   ? const Center(child: CircularProgressIndicator())
                   : DropdownButtonFormField<String>(
@@ -106,30 +121,41 @@ class _TaskListScreenState extends State<TaskListScreen> {
                         border: OutlineInputBorder(),
                       ),
                       value: _selectedListId,
-                      items: _lists.map((list) {
-                        return DropdownMenuItem<String>(
-                          value: list.id,
-                          child: Text(list.name),
-                        );
-                      }).toList(),
+                      items: [
+                        const DropdownMenuItem<String>(
+                          value: null,
+                          child: Text("Todas"),
+                        ),
+                        ..._lists.map((list) {
+                          return DropdownMenuItem<String>(
+                            value: list.id,
+                            child: Text(list.name),
+                          );
+                        }),
+                      ],
                       onChanged: (value) {
                         _selectedListId = value;
-                        _updateTaskStream(value);
+                        _updateTaskStream();
                       },
                     ),
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                ElevatedButton(
-                  onPressed: () {},
-                  child: const Text("Filtrar por Fecha"),
-                ),
-                ElevatedButton(
-                  onPressed: () {},
-                  child: const Text("Filtrar por Colaborador"),
-                ),
-              ],
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _selectDateRange,
+                    icon: const FaIcon(FontAwesomeIcons.calendar),
+                    label: const Text("Filtrar por Fecha"),
+                  ),
+                  if (_startDate != null && _endDate != null)
+                    Text(
+                      "${DateFormat('yyyy-MM-dd').format(_startDate!)} - ${DateFormat('yyyy-MM-dd').format(_endDate!)}",
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                ],
+              ),
             ),
             Expanded(
               child: StreamBuilder<List<TaskModel>>(
@@ -148,7 +174,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
 
                   if (!snapshot.hasData || snapshot.data!.isEmpty) {
                     return const Center(
-                      child: Text("No hay tareas pendientes."),
+                      child: Text("No hay tareas que coincidan."),
                     );
                   }
 
@@ -186,19 +212,60 @@ class _TaskListScreenState extends State<TaskListScreen> {
                                   PopupMenuButton<String>(
                                     onSelected: (value) {
                                       if (value == 'completar') {
-                                        _completeTask(task);
+                                        widget.taskService
+                                            .markTaskAsCompleted(task.id!);
                                       } else if (value == 'eliminar') {
-                                        _deleteTask(task.id!);
+                                        widget.taskService.deleteTask(task.id!);
+                                      } else if (value == 'editar') {
+                                        context.go('/edit-task/${task.id}');
+                                      } else if (value == 'ver') {
+                                        context.go('/view-task/${task.id}');
                                       }
                                     },
                                     itemBuilder: (context) => [
                                       const PopupMenuItem(
                                         value: 'completar',
-                                        child: Text('Completar'),
+                                        child: Row(
+                                          children: [
+                                            FaIcon(FontAwesomeIcons.check,
+                                                size: 16, color: Colors.green),
+                                            SizedBox(width: 8),
+                                            Text('Completar'),
+                                          ],
+                                        ),
+                                      ),
+                                      const PopupMenuItem(
+                                        value: 'editar',
+                                        child: Row(
+                                          children: [
+                                            FaIcon(FontAwesomeIcons.pen,
+                                                size: 16, color: Colors.blue),
+                                            SizedBox(width: 8),
+                                            Text('Editar'),
+                                          ],
+                                        ),
+                                      ),
+                                      const PopupMenuItem(
+                                        value: 'ver',
+                                        child: Row(
+                                          children: [
+                                            FaIcon(FontAwesomeIcons.eye,
+                                                size: 16, color: Colors.orange),
+                                            SizedBox(width: 8),
+                                            Text('Ver'),
+                                          ],
+                                        ),
                                       ),
                                       const PopupMenuItem(
                                         value: 'eliminar',
-                                        child: Text('Eliminar'),
+                                        child: Row(
+                                          children: [
+                                            FaIcon(FontAwesomeIcons.trash,
+                                                size: 16, color: Colors.red),
+                                            SizedBox(width: 8),
+                                            Text('Eliminar'),
+                                          ],
+                                        ),
                                       ),
                                     ],
                                     icon: const Icon(Icons.more_vert),
@@ -274,10 +341,6 @@ class _TaskListScreenState extends State<TaskListScreen> {
             ),
           ],
         ),
-        if (_isLoadingTasks || _isLoadingLists)
-          const Center(
-            child: CircularProgressIndicator(),
-          ),
       ],
     );
   }
