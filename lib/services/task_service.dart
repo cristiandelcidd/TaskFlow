@@ -8,11 +8,11 @@ class TaskService {
   final User user = AuthService().getCurrentUser();
   static const collection = 'tasks';
 
-  Future<List<TaskModel>> _getTasks(
-      {String? listId,
-      bool? isCompleted,
-      String? title,
-      DateTime? dueDate}) async {
+  Future<List<TaskModel>> _getTasks({
+    String? listId,
+    bool? isCompleted,
+    String? title,
+  }) async {
     var query = _firestore
         .collection(collection)
         .where('collaborators', arrayContains: user.email);
@@ -23,10 +23,6 @@ class TaskService {
 
     if (isCompleted != null) {
       query = query.where('isCompleted', isEqualTo: isCompleted);
-    }
-
-    if (dueDate != null) {
-      query = query.where('dueDate', isLessThanOrEqualTo: dueDate);
     }
 
     try {
