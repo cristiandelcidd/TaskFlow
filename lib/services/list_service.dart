@@ -1,9 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:task_flow/models/task_list_model.dart';
+import 'package:task_flow/services/auth_service.dart';
 
 class ListService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final User user = AuthService().getCurrentUser();
 
   static const collection = "taskLists";
 
@@ -57,8 +60,18 @@ class ListService {
     }).toList();
   }
 
-  Future<void> deleteList(String listId) async {
-    await _firestore.collection(collection).doc(listId).delete();
+  Future<bool> deleteList(String listId) async {
+    var existsTaskWithThisListId = await _firestore
+        .collection("tasks")
+        .where('listId', isEqualTo: listId)
+        .get();
+
+    if (existsTaskWithThisListId.docs.isNotEmpty) {
+      return true;
+    } else {
+      await _firestore.collection(collection).doc(listId).delete();
+      return false;
+    }
   }
 
   Future<void> updateList(

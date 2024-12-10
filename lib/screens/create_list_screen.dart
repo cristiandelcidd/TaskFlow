@@ -5,9 +5,11 @@ import 'package:task_flow/services/auth_service.dart';
 import 'package:task_flow/services/list_service.dart';
 
 class CreateListScreen extends StatefulWidget {
-  final ListService listService;
+  final ListService listService = ListService();
 
-  const CreateListScreen({super.key, required this.listService});
+  CreateListScreen({
+    super.key,
+  });
 
   @override
   State<CreateListScreen> createState() => _CreateListScreenState();
@@ -32,7 +34,7 @@ class _CreateListScreenState extends State<CreateListScreen> {
       try {
         await widget.listService
             .addTaskList(_nameController.text, user.uid, user.email!);
-        if (context.mounted) {
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text("Lista creada exitosamente"),

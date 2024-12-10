@@ -43,7 +43,7 @@ class AuthService {
     try {
       await _auth.sendPasswordResetEmail(email: email);
     } catch (e) {
-      print(e);
+      throw Exception('Error al enviar el correo de recuperación: $e');
     }
   }
 
