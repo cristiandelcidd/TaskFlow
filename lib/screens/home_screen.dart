@@ -6,8 +6,6 @@ import 'package:task_flow/screens/completed_tasks_screen.dart';
 import 'package:task_flow/screens/overdue_tasks_screen.dart';
 import 'package:task_flow/screens/task_list_screen.dart';
 import 'package:task_flow/services/auth_service.dart';
-import 'package:task_flow/services/list_service.dart';
-import 'package:task_flow/services/task_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -74,16 +72,9 @@ class _HomeScreenState extends State<HomeScreen> {
           });
         },
         children: [
-          TaskListScreen(
-            taskService: TaskService(),
-            listService: ListService(),
-          ),
-          OverdueTasksScreen(
-            taskService: TaskService(),
-          ),
-          CompletedTasksScreen(
-            taskService: TaskService(),
-          )
+          TaskListScreen(),
+          OverdueTasksScreen(),
+          CompletedTasksScreen()
         ],
       ),
       floatingActionButton: FloatingActionButton(

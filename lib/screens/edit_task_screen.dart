@@ -10,16 +10,13 @@ import 'package:task_flow/services/list_service.dart';
 import 'package:task_flow/services/task_service.dart';
 
 class EditTaskScreen extends StatefulWidget {
-  final ListService listService;
-  final TaskService taskService;
-  final AuthService authService;
+  final ListService listService = ListService();
+  final TaskService taskService = TaskService();
+  final AuthService authService = AuthService();
   final bool isViewing;
 
-  const EditTaskScreen({
+  EditTaskScreen({
     super.key,
-    required this.listService,
-    required this.taskService,
-    required this.authService,
     required this.isViewing,
   });
 
@@ -38,55 +35,67 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
   bool _isLoading = true;
 
   @override
-  void initState() {
-    super.initState();
-  }
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    final taskId = GoRouterState.of(context).pathParameters['taskId'];
-
-    if (taskId != null) {
-      _loadListsAndTask(taskId);
-    } else {
-      _isLoading = false;
+    if (_isLoading) {
+      final taskId = GoRouterState.of(context).pathParameters['taskId'];
+      _loadData(taskId);
     }
   }
 
-  Future<void> _loadListsAndTask(String taskId) async {
-    setState(() => _isLoading = true);
+  Future<void> _loadData(String? taskId) async {
     try {
-      final lists = await widget.listService.getListsOnce();
-      final task = await widget.taskService.getTaskById(taskId);
-
-      if (mounted) {
+      await _loadLists();
+      if (taskId != null) {
+        await _loadTaskDetails(taskId);
+      } else {
         setState(() {
-          _lists = lists;
-
-          _titleController.text = task.title;
-          _descriptionController.text = task.description;
-          _dueDateController.text =
-              DateFormat('yyyy-MM-dd').format(task.dueDate);
-          _selectedListId = task.listId;
-
-          _collaboratorControllers.addAll(
-            task.collaborators
-                .map((email) => TextEditingController(text: email)),
-          );
-
           _isLoading = false;
         });
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _isLoading = false);
-
+        setState(() {
+          _isLoading = false;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al cargar la tarea: $e')),
+          SnackBar(content: Text('Error al cargar datos: $e')),
         );
       }
+    }
+  }
+
+  Future<void> _loadLists() async {
+    final lists = await widget.listService.getListsOnce();
+    if (mounted) {
+      setState(() {
+        _lists = lists;
+      });
+    }
+  }
+
+  Future<void> _loadTaskDetails(String taskId) async {
+    final task = await widget.taskService.getTaskById(taskId);
+    if (mounted) {
+      setState(() {
+        _titleController.text = task.title;
+        _descriptionController.text = task.description;
+        _dueDateController.text = DateFormat('yyyy-MM-dd').format(task.dueDate);
+        _selectedListId = task.listId;
+
+        for (var controller in _collaboratorControllers) {
+          controller.dispose();
+        }
+        _collaboratorControllers.clear();
+
+        _collaboratorControllers.addAll(
+          task.collaborators.map((email) => TextEditingController(text: email)),
+        );
+
+        _isLoading = false;
+      });
     }
   }
 
@@ -137,7 +146,7 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
           const SnackBar(content: Text('Tarea actualizada con éxito')),
         );
 
-        Navigator.pop(context, updatedTask);
+        Navigator.pop(context);
       }
     }
   }
@@ -228,24 +237,38 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
                         onTap: widget.isViewing
                             ? null
                             : () async {
+                                DateTime initialDate = DateTime.now();
+                                if (_dueDateController.text.isNotEmpty) {
+                                  try {
+                                    initialDate = DateFormat('yyyy-MM-dd')
+                                        .parse(_dueDateController.text);
+                                  } catch (e) {
+                                    initialDate = DateTime.now();
+                                  }
+                                }
+
                                 final date = await showDatePicker(
                                   context: context,
-                                  initialDate: _dueDateController
-                                          .text.isNotEmpty
-                                      ? DateTime.parse(_dueDateController.text)
-                                      : DateTime.now(),
+                                  initialDate: initialDate,
                                   firstDate: DateTime.now(),
                                   lastDate: DateTime(2100),
                                 );
 
                                 if (date != null) {
-                                  _dueDateController.text =
-                                      DateFormat('yyyy-MM-dd').format(date);
+                                  setState(() {
+                                    _dueDateController.text =
+                                        DateFormat('yyyy-MM-dd').format(date);
+                                  });
                                 }
                               },
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Por favor selecciona una fecha límite';
+                          }
+                          try {
+                            DateFormat('yyyy-MM-dd').parse(value);
+                          } catch (e) {
+                            return 'Formato de fecha inválido';
                           }
                           return null;
                         },

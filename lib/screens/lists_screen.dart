@@ -7,9 +7,9 @@ import 'package:task_flow/services/auth_service.dart';
 import 'package:task_flow/services/list_service.dart';
 
 class ListsScreen extends StatelessWidget {
-  final ListService listService;
+  final ListService listService = ListService();
 
-  const ListsScreen({super.key, required this.listService});
+  ListsScreen({super.key, required});
 
   @override
   Widget build(BuildContext context) {

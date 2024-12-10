@@ -1,74 +1,148 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
+import 'package:task_flow/models/task_list_model.dart';
 import 'package:task_flow/models/task_model.dart';
+import 'package:task_flow/services/list_service.dart';
 import 'package:task_flow/services/task_service.dart';
 
 class CompletedTasksScreen extends StatefulWidget {
-  final TaskService taskService;
+  final TaskService taskService = TaskService();
+  final ListService listService = ListService();
 
-  const CompletedTasksScreen({
-    super.key,
-    required this.taskService,
-  });
+  CompletedTasksScreen({super.key});
 
   @override
   State<CompletedTasksScreen> createState() => _CompletedTasksScreenState();
 }
 
 class _CompletedTasksScreenState extends State<CompletedTasksScreen> {
-  late Stream<List<TaskModel>> _tasksStream;
+  String? _selectedListId;
+  String? _searchTitle;
+  List<TaskListModel> _lists = [];
+  bool _isLoadingLists = true;
+  late Future<List<TaskModel>> _tasksFuture;
+
+  final TextEditingController _titleController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _tasksStream = widget.taskService.getCompletedTasks();
+    _loadLists();
+    _tasksFuture = widget.taskService.getFilteredTasks(
+      listId: _selectedListId,
+      title: _searchTitle,
+      isCompleted: true,
+    );
   }
 
-  void _deleteTask(String taskId) async {
-    await widget.taskService.deleteTask(taskId);
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tarea eliminada')),
-      );
+  Future<void> _loadLists() async {
+    try {
+      final lists = await widget.listService.getListsOnce();
+      setState(() {
+        _lists = lists;
+        _isLoadingLists = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingLists = false;
+      });
     }
   }
 
-  void _viewTask(String taskId) {
-    context.go('/edit-task/$taskId', extra: {'isEditing': false});
+  void _applyFilters() {
+    setState(() {
+      _tasksFuture = widget.taskService.getFilteredTasks(
+        listId: _selectedListId,
+        title: _searchTitle,
+        isCompleted: true,
+      );
+    });
+  }
+
+  void _clearFilters() {
+    setState(() {
+      _selectedListId = null;
+      _searchTitle = null;
+      _titleController.clear();
+      _tasksFuture = widget.taskService.getFilteredTasks(
+        listId: null,
+        title: null,
+        isCompleted: true,
+      );
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            ElevatedButton(
-              onPressed: () {},
-              child: const Text("Filtrar por Fecha"),
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: TextFormField(
+            controller: _titleController,
+            decoration: const InputDecoration(
+              labelText: "Buscar por título",
+              border: OutlineInputBorder(),
+              prefixIcon: Icon(Icons.search),
             ),
-            ElevatedButton(
-              onPressed: () {},
-              child: const Text("Filtrar por Colaborador"),
+            onChanged: (value) {
+              _searchTitle = value.isNotEmpty ? value : null;
+            },
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: _isLoadingLists
+              ? const Center(child: CircularProgressIndicator())
+              : DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(
+                    labelText: "Selecciona una lista",
+                    border: OutlineInputBorder(),
+                  ),
+                  value: _selectedListId,
+                  items: [
+                    const DropdownMenuItem<String>(
+                      value: null,
+                      child: Text("Todas"),
+                    ),
+                    ..._lists.map((list) {
+                      return DropdownMenuItem<String>(
+                        value: list.id,
+                        child: Text(list.name),
+                      );
+                    }),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedListId = value;
+                    });
+                  },
+                ),
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            ElevatedButton.icon(
+              onPressed: _applyFilters,
+              icon: const FaIcon(FontAwesomeIcons.magnifyingGlass),
+              label: const Text("Aplicar filtros"),
+            ),
+            ElevatedButton.icon(
+              onPressed: _clearFilters,
+              icon: const FaIcon(FontAwesomeIcons.broom),
+              label: const Text("Limpiar filtros"),
             ),
           ],
         ),
-        const SizedBox(height: 8),
         Expanded(
-          child: StreamBuilder<List<TaskModel>>(
-            stream: _tasksStream,
+          child: FutureBuilder<List<TaskModel>>(
+            future: _tasksFuture,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
-              }
-
-              if (snapshot.hasError) {
-                return const Center(
-                  child: Text('Ocurrió un error al cargar las tareas'),
-                );
               }
 
               if (!snapshot.hasData || snapshot.data!.isEmpty) {
@@ -84,11 +158,11 @@ class _CompletedTasksScreenState extends State<CompletedTasksScreen> {
                 itemBuilder: (context, index) {
                   final task = tasks[index];
                   return Card(
-                    elevation: 4,
+                    elevation: 3,
                     margin:
                         const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
@@ -104,82 +178,162 @@ class _CompletedTasksScreenState extends State<CompletedTasksScreen> {
                                   style: const TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
                                   ),
                                 ),
                               ),
                               PopupMenuButton<String>(
                                 onSelected: (value) {
-                                  if (value == 'eliminar') {
-                                    _deleteTask(task.id!);
-                                  } else if (value == 'editar') {
-                                    _viewTask(task.id!);
+                                  if (value == 'ver') {
+                                    context.go('/view-task/${task.id}');
                                   } else if (value == 'marcar-como-pendiente') {
                                     widget.taskService
-                                        .markTaskAsPending(task.id as String);
+                                        .markTaskAsPending(task.id!);
+                                    _applyFilters();
                                   }
                                 },
                                 itemBuilder: (context) => [
                                   const PopupMenuItem(
-                                    value: 'editar',
-                                    child: Text('Editar'),
+                                    value: 'ver',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.visibility,
+                                            color: Colors.orange, size: 16),
+                                        SizedBox(width: 8),
+                                        Text('Ver'),
+                                      ],
+                                    ),
                                   ),
                                   const PopupMenuItem(
                                     value: 'marcar-como-pendiente',
-                                    child: Text('Marcar como Pendiente'),
-                                  ),
-                                  const PopupMenuItem(
-                                    value: 'eliminar',
-                                    child: Text('Eliminar'),
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.undo,
+                                            color: Colors.orange, size: 16),
+                                        SizedBox(width: 8),
+                                        Text('Marcar como Pendiente'),
+                                      ],
+                                    ),
                                   ),
                                 ],
                                 icon: const Icon(Icons.more_vert),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            task.description,
-                            style: const TextStyle(
-                                fontSize: 14, color: Colors.grey),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              const Icon(Icons.description,
+                                  size: 20, color: Colors.blue),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  task.description,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 12),
                           Row(
                             children: [
                               const Icon(Icons.calendar_today,
-                                  size: 16, color: Colors.blue),
+                                  size: 20, color: Colors.blue),
                               const SizedBox(width: 8),
                               Text(
-                                "Fecha límite: ${task.dueDate.toLocal().toString().split(' ')[0]}",
+                                "Fecha límite: ${DateFormat('yyyy-MM-dd').format(task.dueDate)}",
                                 style: const TextStyle(
-                                    fontSize: 14, color: Colors.black87),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              const Icon(Icons.people,
-                                  size: 16, color: Colors.green),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  "Colaboradores: ${task.collaborators.isNotEmpty ? task.collaborators.join(', ') : 'Ninguno'}",
-                                  style: const TextStyle(
-                                      fontSize: 14, color: Colors.black87),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Row(
+                                children: [
+                                  Icon(Icons.people,
+                                      size: 20, color: Colors.teal),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    "Colaboradores:",
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              task.collaborators.isNotEmpty
+                                  ? Wrap(
+                                      spacing: 6.0,
+                                      runSpacing: 6.0,
+                                      children: task.collaborators
+                                          .map((collaborator) {
+                                        return Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 6.0,
+                                            horizontal: 12.0,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.teal.shade50,
+                                            borderRadius:
+                                                BorderRadius.circular(16.0),
+                                            border: Border.all(
+                                                color: Colors.teal.shade300),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(
+                                                Icons.person,
+                                                size: 16,
+                                                color: Colors.teal,
+                                              ),
+                                              const SizedBox(width: 6),
+                                              Text(
+                                                collaborator,
+                                                style: const TextStyle(
+                                                  fontSize: 14,
+                                                  color: Colors.teal,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      }).toList(),
+                                    )
+                                  : const Text(
+                                      "Ninguno",
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
                           const Row(
                             children: [
                               Icon(Icons.check_circle,
-                                  size: 16, color: Colors.green),
+                                  size: 20, color: Colors.green),
                               SizedBox(width: 8),
                               Text(
                                 "Estado: Completada",
                                 style: TextStyle(
-                                    fontSize: 14, color: Colors.black87),
+                                  fontSize: 14,
+                                  color: Colors.black87,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ],
                           ),

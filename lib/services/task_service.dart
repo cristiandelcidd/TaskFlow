@@ -8,17 +8,14 @@ class TaskService {
   final User user = AuthService().getCurrentUser();
   static const collection = 'tasks';
 
-  Stream<List<TaskModel>> _getTasks({
-    String? listId,
-    bool? isCompleted,
-    DateTime? startDueDate,
-    DateTime? endDueDate,
-    DateTime? dueDate,
-    String? title,
-  }) {
+  Future<List<TaskModel>> _getTasks(
+      {String? listId,
+      bool? isCompleted,
+      String? title,
+      DateTime? dueDate}) async {
     var query = _firestore
         .collection(collection)
-        .where('collaborators', arrayContainsAny: [user.email]);
+        .where('collaborators', arrayContains: user.email);
 
     if (listId != null) {
       query = query.where('listId', isEqualTo: listId);
@@ -28,20 +25,14 @@ class TaskService {
       query = query.where('isCompleted', isEqualTo: isCompleted);
     }
 
-    if (startDueDate != null && endDueDate != null) {
-      query = query
-          .where('dueDate',
-              isGreaterThanOrEqualTo: Timestamp.fromDate(startDueDate))
-          .where('dueDate',
-              isLessThanOrEqualTo: Timestamp.fromDate(endDueDate));
-    }
-
     if (dueDate != null) {
-      query = query.where('dueDate', isEqualTo: Timestamp.fromDate(dueDate));
+      query = query.where('dueDate', isLessThanOrEqualTo: dueDate);
     }
 
-    return query.snapshots().map((snapshot) {
-      final tasks = snapshot.docs.map((doc) {
+    try {
+      final snapshot = await query.get();
+
+      var tasks = snapshot.docs.map((doc) {
         final data = doc.data();
         return TaskModel(
           id: doc.id,
@@ -55,58 +46,57 @@ class TaskService {
       }).toList();
 
       if (title != null && title.isNotEmpty) {
-        return tasks.where((task) {
+        tasks = tasks.where((task) {
           return task.title.toLowerCase().contains(title.toLowerCase());
         }).toList();
       }
 
       return tasks;
-    });
+    } catch (e) {
+      throw Exception('Error al obtener las tareas: $e');
+    }
   }
 
-  Stream<List<TaskModel>> getTasksByList(String? listId) =>
-      _getTasks(listId: listId);
+  Future<List<TaskModel>> getOverdueTasks() async {
+    var today = DateTime.now();
+    var startOfDay = DateTime(today.year, today.month, today.day);
 
-  Stream<List<TaskModel>> getPendingTasks() => _getTasks(isCompleted: false);
-
-  Stream<List<TaskModel>> getPendingTasksByList(String? listId) =>
-      _getTasks(listId: listId, isCompleted: false);
-
-  Stream<List<TaskModel>> getCompletedTasks() => _getTasks(isCompleted: true);
-
-  Stream<List<TaskModel>> getOverdueTasks() => _getTasks(
-        isCompleted: false,
-        dueDate: DateTime.now(),
-      );
-
-  Stream<List<TaskModel>> getFilteredTasks(String? listId, String? title,
-          DateTime? startDueDate, DateTime? endDueDate) =>
-      _getTasks(
-        listId: listId,
-        isCompleted: false,
-        startDueDate: startDueDate,
-        endDueDate: endDueDate,
-      );
-
-  Future<List<TaskModel>> getTasksByListOnce() async {
-    var snapshot = (await _firestore
+    var query = _firestore
         .collection(collection)
         .where('collaborators', arrayContains: user.email)
-        .get());
+        .where('isCompleted', isEqualTo: false)
+        .where('dueDate', isLessThan: Timestamp.fromDate(startOfDay));
 
-    return snapshot.docs.map((doc) {
-      final data = doc.data();
-      return TaskModel(
-        id: doc.id,
-        title: data['title'],
-        description: data['description'],
-        dueDate: (data['dueDate'] as Timestamp).toDate(),
-        isCompleted: data['isCompleted'],
-        collaborators: List<String>.from(data['collaborators']),
-        listId: data['listId'],
-      );
-    }).toList();
+    try {
+      final snapshot = await query.get();
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        return TaskModel(
+          id: doc.id,
+          title: data['title'],
+          description: data['description'],
+          dueDate: (data['dueDate'] as Timestamp).toDate(),
+          isCompleted: data['isCompleted'],
+          collaborators: List<String>.from(data['collaborators']),
+          listId: data['listId'],
+        );
+      }).toList();
+    } catch (e) {
+      throw Exception('Error al obtener tareas vencidas: $e');
+    }
   }
+
+  Future<List<TaskModel>> getFilteredTasks({
+    String? listId,
+    String? title,
+    bool? isCompleted = false,
+  }) =>
+      _getTasks(
+        title: title,
+        listId: listId,
+        isCompleted: isCompleted,
+      );
 
   Future<void> addTask(String listId, TaskModel task) async {
     await _firestore.collection(collection).add({
@@ -127,7 +117,7 @@ class TaskService {
       'description': updatedTask.description,
       'dueDate': updatedTask.dueDate,
       'isCompleted': updatedTask.isCompleted,
-      'collaborators': [...updatedTask.collaborators, user.email],
+      'collaborators': updatedTask.collaborators
     });
   }
 

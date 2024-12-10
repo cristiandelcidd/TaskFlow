@@ -9,15 +9,13 @@ import 'package:task_flow/services/list_service.dart';
 import 'package:task_flow/services/task_service.dart';
 
 class NewTaskScreen extends StatefulWidget {
-  final ListService listService;
-  final TaskService taskService;
-  final AuthService authService;
+  final ListService listService = ListService();
+  final TaskService taskService = TaskService();
+  final AuthService authService = AuthService();
 
-  const NewTaskScreen(
-      {super.key,
-      required this.listService,
-      required this.taskService,
-      required this.authService});
+  NewTaskScreen({
+    super.key,
+  });
 
   @override
   State<NewTaskScreen> createState() => _NewTaskScreenState();

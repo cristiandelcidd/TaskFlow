@@ -5,9 +5,11 @@ import 'package:task_flow/services/auth_service.dart';
 import 'package:task_flow/services/list_service.dart';
 
 class CreateListScreen extends StatefulWidget {
-  final ListService listService;
+  final ListService listService = ListService();
 
-  const CreateListScreen({super.key, required this.listService});
+  CreateListScreen({
+    super.key,
+  });
 
   @override
   State<CreateListScreen> createState() => _CreateListScreenState();
