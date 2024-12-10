@@ -126,19 +126,19 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           actions: <Widget>[
             TextButton(
-              child: const Text('Aceptar'),
+              child: const Text('Cancelar'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Aceptar', style: TextStyle(color: Colors.red)),
               onPressed: () async {
                 await auth.signOut();
 
                 if (context.mounted) {
                   context.go('/login');
                 }
-              },
-            ),
-            TextButton(
-              child: const Text('Cancelar'),
-              onPressed: () {
-                Navigator.of(context).pop();
               },
             ),
           ],

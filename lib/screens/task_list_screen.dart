@@ -39,9 +39,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
 
   Future<List<TaskModel>> _fetchTasks() {
     return widget.taskService.getFilteredTasks(
-      listId: _selectedListId,
-      title: _searchTitle,
-    );
+        listId: _selectedListId, title: _searchTitle, isCompleted: false);
   }
 
   Future<void> _loadLists() async {
@@ -82,6 +80,40 @@ class _TaskListScreenState extends State<TaskListScreen> {
     setState(() {
       _taskFuture = _fetchTasks();
     });
+  }
+
+  Future<void> _confirmDelete(BuildContext context, String taskId) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirmar eliminación'),
+          content:
+              const Text('¿Estás seguro de que deseas eliminar esta tarea?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child:
+                  const Text('Eliminar', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result == true) {
+      await widget.taskService.deleteTask(taskId);
+      _reloadData();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Tarea eliminada con éxito')),
+        );
+      }
+    }
   }
 
   @override
@@ -202,8 +234,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
                                     } else if (value == 'editar') {
                                       context.go('/edit-task/${task.id}');
                                     } else if (value == 'eliminar') {
-                                      widget.taskService.deleteTask(task.id!);
-                                      _reloadData();
+                                      _confirmDelete(context, task.id!);
                                     } else if (value == 'ver') {
                                       context.go('/view-task/${task.id}');
                                     }
