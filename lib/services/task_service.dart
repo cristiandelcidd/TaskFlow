@@ -53,20 +53,25 @@ class TaskService {
     }
   }
 
-  Future<List<TaskModel>> getOverdueTasks() async {
-    var today = DateTime.now();
-    var startOfDay = DateTime(today.year, today.month, today.day);
-
+  Stream<List<TaskModel>> getTasksStreams({
+    String? listId,
+    bool? isCompleted,
+    String? title,
+  }) {
     var query = _firestore
         .collection(collection)
-        .where('collaborators', arrayContains: user.email)
-        .where('isCompleted', isEqualTo: false)
-        .where('dueDate', isLessThan: Timestamp.fromDate(startOfDay));
+        .where('collaborators', arrayContains: user.email);
 
-    try {
-      final snapshot = await query.get();
+    if (listId != null) {
+      query = query.where('listId', isEqualTo: listId);
+    }
 
-      return snapshot.docs.map((doc) {
+    if (isCompleted != null) {
+      query = query.where('isCompleted', isEqualTo: isCompleted);
+    }
+
+    return query.snapshots().map((snapshot) {
+      var tasks = snapshot.docs.map((doc) {
         final data = doc.data();
         return TaskModel(
           id: doc.id,
@@ -78,9 +83,56 @@ class TaskService {
           listId: data['listId'],
         );
       }).toList();
-    } catch (e) {
-      throw Exception('Error al obtener tareas vencidas: $e');
+
+      if (title != null && title.isNotEmpty) {
+        tasks = tasks.where((task) {
+          return task.title.toLowerCase().contains(title.toLowerCase());
+        }).toList();
+      }
+
+      return tasks;
+    });
+  }
+
+  Stream<List<TaskModel>> getOverdueTasks({
+    String? listId,
+    String? title,
+  }) {
+    var today = DateTime.now();
+    var startOfDay = DateTime(today.year, today.month, today.day);
+
+    var query = _firestore
+        .collection(collection)
+        .where('collaborators', arrayContains: user.email)
+        .where('isCompleted', isEqualTo: false)
+        .where('dueDate', isLessThan: Timestamp.fromDate(startOfDay));
+
+    if (listId != null) {
+      query = query.where('listId', isEqualTo: listId);
     }
+
+    return query.snapshots().map((snapshot) {
+      var tasks = snapshot.docs.map((doc) {
+        final data = doc.data();
+        return TaskModel(
+          id: doc.id,
+          title: data['title'],
+          description: data['description'],
+          dueDate: (data['dueDate'] as Timestamp).toDate(),
+          isCompleted: data['isCompleted'],
+          collaborators: List<String>.from(data['collaborators']),
+          listId: data['listId'],
+        );
+      }).toList();
+
+      if (title != null && title.isNotEmpty) {
+        tasks = tasks.where((task) {
+          return task.title.toLowerCase().contains(title.toLowerCase());
+        }).toList();
+      }
+
+      return tasks;
+    });
   }
 
   Future<List<TaskModel>> getFilteredTasks({
@@ -89,6 +141,17 @@ class TaskService {
     bool? isCompleted = false,
   }) =>
       _getTasks(
+        title: title,
+        listId: listId,
+        isCompleted: isCompleted,
+      );
+
+  Stream<List<TaskModel>> getFilteredTasksStream({
+    String? listId,
+    String? title,
+    bool? isCompleted = false,
+  }) =>
+      getTasksStreams(
         title: title,
         listId: listId,
         isCompleted: isCompleted,

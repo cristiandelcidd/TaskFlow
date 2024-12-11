@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:task_flow/services/auth_service.dart';
 import 'package:task_flow/services/list_service.dart';
@@ -44,7 +45,7 @@ class _CreateListScreenState extends State<CreateListScreen> {
             ),
           );
 
-          Navigator.pop(context);
+          context.go('/lists');
         }
       } catch (e) {
         _showError("Error al crear la lista: $e");
