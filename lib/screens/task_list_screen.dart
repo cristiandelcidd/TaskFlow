@@ -23,8 +23,7 @@ class TaskListScreen extends StatefulWidget {
 class _TaskListScreenState extends State<TaskListScreen> {
   String? _selectedListId;
   String? _searchTitle;
-  List<TaskListModel> _lists = [];
-  bool _isLoadingLists = true;
+  late final Stream<List<TaskListModel>> _listsStream;
 
   final TextEditingController _titleController = TextEditingController();
 
@@ -33,32 +32,13 @@ class _TaskListScreenState extends State<TaskListScreen> {
   @override
   void initState() {
     super.initState();
-    _loadLists();
+    _listsStream = widget.listService.getLists();
     _taskFuture = _fetchTasks();
   }
 
   Future<List<TaskModel>> _fetchTasks() {
     return widget.taskService.getFilteredTasks(
         listId: _selectedListId, title: _searchTitle, isCompleted: false);
-  }
-
-  Future<void> _loadLists() async {
-    try {
-      final lists = await widget.listService.getListsOnce();
-      setState(() {
-        _lists = lists;
-        _isLoadingLists = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isLoadingLists = false;
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al cargar las listas: $e')),
-        );
-      }
-    }
   }
 
   void _applyFilters() {
@@ -136,32 +116,50 @@ class _TaskListScreenState extends State<TaskListScreen> {
         ),
         Padding(
           padding: const EdgeInsets.all(8.0),
-          child: _isLoadingLists
-              ? const Center(child: CircularProgressIndicator())
-              : DropdownButtonFormField<String>(
-                  decoration: const InputDecoration(
-                    labelText: "Selecciona una lista",
-                    border: OutlineInputBorder(),
+          child: StreamBuilder<List<TaskListModel>>(
+            stream: _listsStream,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (snapshot.hasError) {
+                return const Center(
+                  child: Text(
+                    "Error al cargar las listas.",
+                    style: TextStyle(color: Colors.red),
                   ),
-                  value: _selectedListId,
-                  items: [
-                    const DropdownMenuItem<String>(
-                      value: null,
-                      child: Text("Todas"),
-                    ),
-                    ..._lists.map((list) {
-                      return DropdownMenuItem<String>(
-                        value: list.id,
-                        child: Text(list.name),
-                      );
-                    }),
-                  ],
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedListId = value;
-                    });
-                  },
+                );
+              }
+
+              final lists = snapshot.data ?? [];
+
+              return DropdownButtonFormField<String>(
+                decoration: const InputDecoration(
+                  labelText: "Selecciona una lista",
+                  border: OutlineInputBorder(),
                 ),
+                value: _selectedListId,
+                items: [
+                  const DropdownMenuItem<String>(
+                    value: null,
+                    child: Text("Todas"),
+                  ),
+                  ...lists.map((list) {
+                    return DropdownMenuItem<String>(
+                      value: list.id,
+                      child: Text(list.name),
+                    );
+                  }),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    _selectedListId = value;
+                  });
+                },
+              );
+            },
+          ),
         ),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
