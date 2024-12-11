@@ -195,11 +195,7 @@ class _OverdueTasksScreenState extends State<OverdueTasksScreen> {
                                 ),
                                 PopupMenuButton<String>(
                                   onSelected: (value) {
-                                    if (value == 'completar') {
-                                      widget.taskService
-                                          .markTaskAsCompleted(task.id!);
-                                      _reloadData();
-                                    } else if (value == 'editar') {
+                                    if (value == 'editar') {
                                       context.go('/edit-task/${task.id}');
                                     } else if (value == 'eliminar') {
                                       widget.taskService.deleteTask(task.id!);
