@@ -21,17 +21,17 @@ class OverdueTasksScreen extends StatefulWidget {
 class _OverdueTasksScreenState extends State<OverdueTasksScreen> {
   String? _selectedListId;
   String? _searchTitle;
-  List<TaskListModel> _lists = [];
-  bool _isLoadingLists = true;
+  late final Stream<List<TaskListModel>> _listsStream;
 
   final TextEditingController _titleController = TextEditingController();
 
   Future<List<TaskModel>>? _overdueTasksFuture;
 
   @override
+  @override
   void initState() {
     super.initState();
-    _loadLists();
+    _listsStream = widget.listService.getLists();
     _overdueTasksFuture = _fetchOverdueTasks();
   }
 
@@ -48,20 +48,6 @@ class _OverdueTasksScreenState extends State<OverdueTasksScreen> {
     } catch (e) {
       debugPrint('Error fetching tasks: $e');
       return [];
-    }
-  }
-
-  Future<void> _loadLists() async {
-    try {
-      final lists = await widget.listService.getListsOnce();
-      setState(() {
-        _lists = lists;
-        _isLoadingLists = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isLoadingLists = false;
-      });
     }
   }
 
@@ -106,32 +92,50 @@ class _OverdueTasksScreenState extends State<OverdueTasksScreen> {
         ),
         Padding(
           padding: const EdgeInsets.all(8.0),
-          child: _isLoadingLists
-              ? const Center(child: CircularProgressIndicator())
-              : DropdownButtonFormField<String>(
-                  decoration: const InputDecoration(
-                    labelText: "Selecciona una lista",
-                    border: OutlineInputBorder(),
+          child: StreamBuilder<List<TaskListModel>>(
+            stream: _listsStream,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (snapshot.hasError) {
+                return const Center(
+                  child: Text(
+                    "Error al cargar las listas.",
+                    style: TextStyle(color: Colors.red),
                   ),
-                  value: _selectedListId,
-                  items: [
-                    const DropdownMenuItem<String>(
-                      value: null,
-                      child: Text("Todas"),
-                    ),
-                    ..._lists.map((list) {
-                      return DropdownMenuItem<String>(
-                        value: list.id,
-                        child: Text(list.name),
-                      );
-                    }),
-                  ],
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedListId = value;
-                    });
-                  },
+                );
+              }
+
+              final lists = snapshot.data ?? [];
+
+              return DropdownButtonFormField<String>(
+                decoration: const InputDecoration(
+                  labelText: "Selecciona una lista",
+                  border: OutlineInputBorder(),
                 ),
+                value: _selectedListId,
+                items: [
+                  const DropdownMenuItem<String>(
+                    value: null,
+                    child: Text("Todas"),
+                  ),
+                  ...lists.map((list) {
+                    return DropdownMenuItem<String>(
+                      value: list.id,
+                      child: Text(list.name),
+                    );
+                  }),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    _selectedListId = value;
+                  });
+                },
+              );
+            },
+          ),
         ),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,

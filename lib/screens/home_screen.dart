@@ -19,7 +19,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   var auth = AuthService();
 
-  final pageViewController = PageController();
+  final List<Widget> _screens = [
+    TaskListScreen(),
+    OverdueTasksScreen(),
+    CompletedTasksScreen(),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -64,18 +68,9 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: PageView(
-        controller: pageViewController,
-        onPageChanged: (page) {
-          setState(() {
-            _selectedIndex = page;
-          });
-        },
-        children: [
-          TaskListScreen(),
-          OverdueTasksScreen(),
-          CompletedTasksScreen()
-        ],
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _screens,
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -103,7 +98,6 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: (index) {
           setState(() {
             _selectedIndex = index;
-            pageViewController.jumpToPage(index);
           });
         },
       ),
