@@ -237,27 +237,18 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
                         onTap: widget.isViewing
                             ? null
                             : () async {
-                                DateTime initialDate = DateTime.now();
-                                if (_dueDateController.text.isNotEmpty) {
-                                  try {
-                                    initialDate = DateFormat('yyyy-MM-dd')
-                                        .parse(_dueDateController.text);
-                                  } catch (e) {
-                                    initialDate = DateTime.now();
-                                  }
-                                }
-
-                                final date = await showDatePicker(
+                                DateTime? pickedDate = await showDatePicker(
                                   context: context,
-                                  initialDate: initialDate,
+                                  initialDate: DateTime.now(),
                                   firstDate: DateTime.now(),
                                   lastDate: DateTime(2100),
                                 );
 
-                                if (date != null) {
+                                if (pickedDate != null) {
                                   setState(() {
                                     _dueDateController.text =
-                                        DateFormat('yyyy-MM-dd').format(date);
+                                        DateFormat('yyyy-MM-dd')
+                                            .format(pickedDate);
                                   });
                                 }
                               },
