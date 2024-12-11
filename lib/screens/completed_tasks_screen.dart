@@ -22,7 +22,7 @@ class _CompletedTasksScreenState extends State<CompletedTasksScreen> {
   String? _selectedListId;
   String? _searchTitle;
   late final Stream<List<TaskListModel>> _listsStream;
-  late Future<List<TaskModel>> _tasksFuture;
+  late Stream<List<TaskModel>> _tasksStream;
 
   final TextEditingController _titleController = TextEditingController();
 
@@ -31,7 +31,7 @@ class _CompletedTasksScreenState extends State<CompletedTasksScreen> {
     super.initState();
     _listsStream = widget.listService.getLists();
 
-    _tasksFuture = widget.taskService.getFilteredTasks(
+    _tasksStream = widget.taskService.getFilteredTasksStream(
       listId: _selectedListId,
       title: _searchTitle,
       isCompleted: true,
@@ -40,7 +40,7 @@ class _CompletedTasksScreenState extends State<CompletedTasksScreen> {
 
   void _applyFilters() {
     setState(() {
-      _tasksFuture = widget.taskService.getFilteredTasks(
+      _tasksStream = widget.taskService.getFilteredTasksStream(
         listId: _selectedListId,
         title: _searchTitle,
         isCompleted: true,
@@ -53,7 +53,7 @@ class _CompletedTasksScreenState extends State<CompletedTasksScreen> {
       _selectedListId = null;
       _searchTitle = null;
       _titleController.clear();
-      _tasksFuture = widget.taskService.getFilteredTasks(
+      _tasksStream = widget.taskService.getFilteredTasksStream(
         listId: null,
         title: null,
         isCompleted: true,
@@ -142,8 +142,8 @@ class _CompletedTasksScreenState extends State<CompletedTasksScreen> {
           ],
         ),
         Expanded(
-          child: FutureBuilder<List<TaskModel>>(
-            future: _tasksFuture,
+          child: StreamBuilder<List<TaskModel>>(
+            stream: _tasksStream,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());

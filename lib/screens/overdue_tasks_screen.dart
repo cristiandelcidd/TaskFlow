@@ -28,7 +28,6 @@ class _OverdueTasksScreenState extends State<OverdueTasksScreen> {
   Future<List<TaskModel>>? _overdueTasksFuture;
 
   @override
-  @override
   void initState() {
     super.initState();
     _listsStream = widget.listService.getLists();
