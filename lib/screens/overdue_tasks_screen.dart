@@ -12,9 +12,7 @@ class OverdueTasksScreen extends StatefulWidget {
   final TaskService taskService = TaskService();
   final ListService listService = ListService();
 
-  OverdueTasksScreen({
-    super.key,
-  });
+  OverdueTasksScreen({super.key});
 
   @override
   State<OverdueTasksScreen> createState() => _OverdueTasksScreenState();
@@ -37,16 +35,20 @@ class _OverdueTasksScreenState extends State<OverdueTasksScreen> {
     _overdueTasksFuture = _fetchOverdueTasks();
   }
 
-  Future<List<TaskModel>> _fetchOverdueTasks() {
-    return widget.taskService
-        .getFilteredTasks(
-          listId: _selectedListId,
-          title: _searchTitle,
-          isCompleted: false,
-        )
-        .then((tasks) => tasks
-            .where((task) => task.dueDate.isBefore(DateTime.now()))
-            .toList());
+  Future<List<TaskModel>> _fetchOverdueTasks() async {
+    try {
+      final tasks = await widget.taskService.getFilteredTasks(
+        listId: _selectedListId,
+        title: _searchTitle,
+        isCompleted: false,
+      );
+      return tasks
+          .where((task) => task.dueDate.isBefore(DateTime.now()))
+          .toList();
+    } catch (e) {
+      debugPrint('Error fetching tasks: $e');
+      return [];
+    }
   }
 
   Future<void> _loadLists() async {
@@ -156,6 +158,15 @@ class _OverdueTasksScreenState extends State<OverdueTasksScreen> {
                   return const Center(child: CircularProgressIndicator());
                 }
 
+                if (snapshot.hasError) {
+                  return const Center(
+                    child: Text(
+                      "Error al cargar las tareas.",
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  );
+                }
+
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
                   return const Center(
                     child: Text("No hay tareas vencidas."),
@@ -197,9 +208,6 @@ class _OverdueTasksScreenState extends State<OverdueTasksScreen> {
                                   onSelected: (value) {
                                     if (value == 'editar') {
                                       context.go('/edit-task/${task.id}');
-                                    } else if (value == 'eliminar') {
-                                      widget.taskService.deleteTask(task.id!);
-                                      _reloadData();
                                     } else if (value == 'ver') {
                                       context.go('/view-task/${task.id}');
                                     }
@@ -345,17 +353,17 @@ class _OverdueTasksScreenState extends State<OverdueTasksScreen> {
                               ],
                             ),
                             const SizedBox(height: 12),
-                            Row(
+                            const Row(
                               children: [
-                                const Icon(
-                                  Icons.error_rounded,
+                                Icon(
+                                  Icons.info,
                                   size: 20,
-                                  color: Colors.red,
+                                  color: Colors.orange,
                                 ),
-                                const SizedBox(width: 8),
+                                SizedBox(width: 8),
                                 Text(
-                                  "Estado: ${task.isCompleted ? 'Completada' : 'Vencida'}",
-                                  style: const TextStyle(
+                                  "Estado: Pendiente",
+                                  style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.black87,
