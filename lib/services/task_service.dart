@@ -173,6 +173,7 @@ class TaskService {
   Future<void> updateTask(String taskId, TaskModel updatedTask) async {
     await _firestore.collection(collection).doc(taskId).update({
       'title': updatedTask.title,
+      'listId': updatedTask.listId,
       'description': updatedTask.description,
       'dueDate': updatedTask.dueDate,
       'isCompleted': updatedTask.isCompleted,
